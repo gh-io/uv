@@ -84,8 +84,18 @@ jobs:
       - name: "Extract artifact archive"
         run: tar -xvf benchmarks-walltime.tar
 
+      - name: "Clone airflow workspace"
+        run: |
+          git init airflow
+          git -C airflow remote add origin https://github.com/apache/airflow.git
+          git -C airflow fetch --depth 1 origin 7fa400745ac7aebc7cc4ec21d3a047e9fb258310
+          git -C airflow checkout FETCH_HEAD
+
       - name: "Create venv"
         run: ./target/debug/uv venv --cache-dir .cache
+
+      - name: "Sync airflow workspace"
+        run: ./target/debug/uv sync --directory airflow --cache-dir .cache
 
       - name: "Run benchmarks"
         uses: CodSpeedHQ/action@1c8ae4843586d3ba879736b7f6b7b0c990757fab # v4.12.1
@@ -124,6 +134,16 @@ jobs:
           cargo run --bin uv -- venv --cache-dir .cache
           cargo run --bin uv -- pip compile test/requirements/jupyter.in --universal --exclude-newer 2024-08-08 --cache-dir .cache
           cargo run --bin uv -- pip compile test/requirements/airflow.in --universal --exclude-newer 2024-08-08 --cache-dir .cache
+
+      - name: "Clone airflow workspace"
+        run: |
+          git init airflow
+          git -C airflow remote add origin https://github.com/apache/airflow.git
+          git -C airflow fetch --depth 1 origin 7fa400745ac7aebc7cc4ec21d3a047e9fb258310
+          git -C airflow checkout FETCH_HEAD
+
+      - name: "Sync airflow workspace"
+        run: cargo run --bin uv -- sync --directory airflow --cache-dir .cache
 
       - name: "Build benchmarks"
         run: cargo codspeed build --profile profiling -p uv-bench

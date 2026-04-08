@@ -8,7 +8,9 @@ use itertools::Itertools;
 use owo_colors::OwoColorize;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
-use tracing::warn;
+use tracing::{trace, warn};
+use uv_audit::service::osv::{self, Filter};
+use uv_audit::types::Dependency;
 use uv_cache::Cache;
 use uv_cli::SyncFormat;
 use uv_client::{BaseClientBuilder, FlatIndexClient, RegistryClientBuilder};
@@ -32,6 +34,7 @@ use uv_python::{PythonDownloads, PythonEnvironment, PythonPreference, PythonRequ
 use uv_resolver::{FlatIndex, ForkStrategy, Installable, Lock, PrereleaseMode, ResolutionMode};
 use uv_scripts::Pep723Script;
 use uv_settings::PythonInstallMirrors;
+use uv_static::EnvVars;
 use uv_types::{BuildIsolation, HashStrategy};
 use uv_warnings::warn_user;
 use uv_workspace::pyproject::Source;
@@ -714,6 +717,9 @@ pub(super) async fn do_sync(
     }
     .into_inner();
 
+    // Save a reference to the base client builder for the post-install malware check,
+    // before we clone-and-modify it for the registry client below.
+    let malware_check_client_builder = client_builder;
     let client_builder = client_builder.clone().keyring(keyring_provider);
 
     // Validate that the Python version is supported by the lockfile.
@@ -849,6 +855,16 @@ pub(super) async fn do_sync(
         preview,
     );
 
+    // Run a malware check against OSV before installing.
+    check_malware(
+        &target,
+        extras,
+        groups,
+        malware_check_client_builder,
+        concurrency,
+    )
+    .await?;
+
     let site_packages = SitePackages::from_environment(venv)?;
 
     // Sync the environment.
@@ -878,6 +894,86 @@ pub(super) async fn do_sync(
     .await?;
 
     Ok(changelog)
+}
+
+/// Run a malware check against OSV before installing dependencies.
+///
+/// This queries the OSV batch endpoint with [`Filter::Malware`] to detect only `MAL-`-prefixed
+/// advisories. If malware is found, installation is aborted. Network errors or service failures
+/// are silently swallowed (with a `trace!` log) so that offline scenarios don't block work.
+async fn check_malware(
+    target: &InstallTarget<'_>,
+    extras: &ExtrasSpecificationWithDefaults,
+    groups: &DependencyGroupsWithDefaults,
+    client_builder: &BaseClientBuilder<'_>,
+    concurrency: &Concurrency,
+) -> Result<(), ProjectError> {
+    // Allow opting out via environment variable.
+    if std::env::var_os(EnvVars::UV_NO_MALWARE_CHECK).is_some() {
+        return Ok(());
+    }
+
+    let auditable = target.lock().packages_for_audit(extras, groups);
+    if auditable.is_empty() {
+        return Ok(());
+    }
+
+    let dependencies: Vec<Dependency> = auditable
+        .iter()
+        .map(|(name, version)| Dependency::new((*name).clone(), (*version).clone()))
+        .collect();
+
+    let osv_url =
+        std::env::var(EnvVars::UV_MALWARE_CHECK_URL).unwrap_or_else(|_| osv::API_BASE.to_string());
+    let osv_url = match osv_url.parse() {
+        Ok(url) => url,
+        Err(err) => {
+            trace!("Malware check skipped: invalid URL: {err}");
+            return Ok(());
+        }
+    };
+
+    let base_client = match client_builder.build() {
+        Ok(client) => client,
+        Err(err) => {
+            trace!("Malware check skipped: failed to build HTTP client: {err}");
+            return Ok(());
+        }
+    };
+    let client = base_client.for_host(&osv_url).raw_client().clone();
+    let service = osv::Osv::new(client, Some(osv_url), concurrency.clone());
+
+    trace!(
+        "Running malware check for {} dependencies",
+        dependencies.len()
+    );
+
+    let findings = match service.query_batch(&dependencies, Filter::Malware).await {
+        Ok(findings) => findings,
+        Err(err) => {
+            trace!("Malware check failed: {err}");
+            return Ok(());
+        }
+    };
+
+    let mut malware_details = Vec::new();
+    for finding in &findings {
+        if let uv_audit::types::Finding::Vulnerability(vulnerability) = finding {
+            malware_details.push(format!(
+                "  - `{}=={}`: {} (https://osv.dev/vulnerability/{})",
+                vulnerability.dependency.name(),
+                vulnerability.dependency.version(),
+                vulnerability.id.as_str(),
+                vulnerability.id.as_str(),
+            ));
+        }
+    }
+
+    if malware_details.is_empty() {
+        Ok(())
+    } else {
+        Err(ProjectError::MalwareFound(malware_details.join("\n")))
+    }
 }
 
 /// Filter out any virtual workspace members.

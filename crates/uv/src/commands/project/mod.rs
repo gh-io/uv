@@ -266,6 +266,11 @@ pub(crate) enum ProjectError {
     #[error("Failed to parse PEP 723 script metadata")]
     Pep723ScriptTomlParse(#[source] toml::de::Error),
 
+    #[error(
+        "Malware detected in locked dependencies; aborting sync. Set `UV_NO_MALWARE_CHECK=1` to bypass this check.\n{0}"
+    )]
+    MalwareFound(String),
+
     #[error("Failed to find `site-packages` directory for environment")]
     NoSitePackages,
 

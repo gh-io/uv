@@ -1242,6 +1242,8 @@ impl TestContext {
             // Since downloads, fetches and builds run in parallel, their message output order is
             // non-deterministic, so can't capture them in test output.
             .env(EnvVars::UV_TEST_NO_CLI_PROGRESS, "1")
+            // Disable the automatic malware check to prevent network calls during tests.
+            .env(EnvVars::UV_NO_MALWARE_CHECK, "1")
             // I believe the intent of all tests is that they are run outside the
             // context of an existing git repository. And when they aren't, state
             // from the parent git repository can bleed into the behavior of `uv

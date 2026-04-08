@@ -10,9 +10,8 @@ use tokio_util::compat::{FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
 use tracing::{debug, warn};
 
 use uv_distribution_filename::SourceDistExtension;
-use uv_warnings::warn_user_once;
 
-use crate::{CompressionMethod, Error, insecure_no_validate, validate_archive_member_name};
+use crate::{Error, insecure_no_validate, validate_archive_member_name};
 
 const DEFAULT_BUF_SIZE: usize = 128 * 1024;
 
@@ -89,18 +88,6 @@ pub async fn unzip<D: Display, R: tokio::io::AsyncRead + Unpin>(
 
     while let Some(mut entry) = zip.next_with_entry().await? {
         let zip_entry = entry.reader().entry();
-
-        // Check for unexpected compression methods.
-        // A future version of uv will reject instead of warning about these.
-        let compression = CompressionMethod::from(zip_entry.compression());
-        if !compression.is_well_known() {
-            warn_user_once!(
-                "One or more file entries in '{source_hint}' use the '{compression}' compression method, which is not widely supported. A future version of uv will reject ZIP archives containing entries compressed with this method. Entries must be compressed with the '{stored}', '{deflate}', or '{zstd}' compression methods.",
-                stored = CompressionMethod::Stored,
-                deflate = CompressionMethod::Deflated,
-                zstd = CompressionMethod::Zstd,
-            );
-        }
 
         // Construct the (expected) path to the file on-disk.
         let path = match zip_entry.filename().as_str() {

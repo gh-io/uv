@@ -1,4 +1,3 @@
-use std::fmt::Display;
 use std::path::{Component, Path, PathBuf};
 use std::pin::Pin;
 
@@ -45,12 +44,8 @@ struct ComputedEntry {
 /// is already fully on disk, consider using `unzip_archive`, which can use multiple
 /// threads to work faster in that case.
 ///
-/// `source_hint` is used for warning messages, to identify the source of the ZIP archive
-/// beneath the reader. It might be a URL, a file path, or something else.
-///
 /// Returns the list of unpacked files and their sizes.
-pub async fn unzip<D: Display, R: tokio::io::AsyncRead + Unpin>(
-    source_hint: D,
+pub async fn unzip<R: tokio::io::AsyncRead + Unpin>(
     reader: R,
     target: impl AsRef<Path>,
 ) -> Result<Vec<(PathBuf, u64)>, Error> {
@@ -823,18 +818,14 @@ pub async fn untar<R: tokio::io::AsyncRead + Unpin>(
 /// Unpack a `.zip`, `.tar.gz`, `.tar.bz2`, `.tar.zst`, or `.tar.xz` archive into the target directory,
 /// without requiring `Seek`.
 ///
-/// `source_hint` is used for warning messages, to identify the source of the archive
-/// beneath the reader. It might be a URL, a file path, or something else.
-///
 /// Returns the list of unpacked files and their sizes.
-pub async fn archive<D: Display, R: tokio::io::AsyncRead + Unpin>(
-    source_hint: D,
+pub async fn archive<R: tokio::io::AsyncRead + Unpin>(
     reader: R,
     ext: SourceDistExtension,
     target: impl AsRef<Path>,
 ) -> Result<Vec<(PathBuf, u64)>, Error> {
     match ext {
-        SourceDistExtension::Zip => unzip(source_hint, reader, target).await,
+        SourceDistExtension::Zip => unzip(reader, target).await,
         SourceDistExtension::Tar => untar(reader, target).await,
         SourceDistExtension::Tgz | SourceDistExtension::TarGz => untar_gz(reader, target).await,
         SourceDistExtension::Tbz | SourceDistExtension::TarBz2 => untar_bz2(reader, target).await,

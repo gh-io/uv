@@ -16419,6 +16419,7 @@ async fn sync_malware_check_network_error() {
 
     ----- stderr -----
     Resolved 2 packages in [TIME]
+    warning: Skipping malware check due to a network error
     Prepared 1 package in [TIME]
     Installed 1 package in [TIME]
      + iniconfig==2.0.0

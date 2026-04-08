@@ -913,7 +913,8 @@ async fn check_malware(
         return Ok(());
     }
 
-    let auditable = target.lock().packages_for_audit(extras, groups);
+    // Only check packages from PyPI — private/local packages aren't in the OSV database.
+    let auditable = target.lock().pypi_packages_for_audit(extras, groups);
     if auditable.is_empty() {
         return Ok(());
     }
@@ -952,6 +953,7 @@ async fn check_malware(
         Ok(findings) => findings,
         Err(err) => {
             trace!("Malware check failed: {err}");
+            warn_user!("Skipping malware check due to a network error");
             return Ok(());
         }
     };

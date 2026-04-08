@@ -1370,7 +1370,7 @@ impl ProjectWorkspace {
             return Ok(None);
         };
 
-        match Self::from_project(&project_root, &project, &pyproject_toml, options, cache).await {
+        match Self::from_project(project_root, &project, &pyproject_toml, options, cache).await {
             Ok(workspace) => Ok(Some(workspace)),
             Err(WorkspaceError::NonWorkspace(_)) => Ok(None),
             Err(err) => Err(err),

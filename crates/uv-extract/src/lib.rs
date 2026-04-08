@@ -21,8 +21,7 @@ pub(crate) enum CompressionMethod {
     Stored,
     Deflated,
     Zstd,
-    // NOTE: This will become `Unsupported(...)` in the future.
-    Deprecated(&'static str),
+    Unsupported(&'static str),
 }
 
 impl CompressionMethod {
@@ -39,7 +38,7 @@ impl Display for CompressionMethod {
             Self::Stored => write!(f, "stored"),
             Self::Deflated => write!(f, "DEFLATE"),
             Self::Zstd => write!(f, "zstd"),
-            Self::Deprecated(name) => write!(f, "{name}"),
+            Self::Unsupported(name) => write!(f, "{name}"),
         }
     }
 }
@@ -50,10 +49,7 @@ impl From<async_zip::Compression> for CompressionMethod {
             async_zip::Compression::Stored => Self::Stored,
             async_zip::Compression::Deflate => Self::Deflated,
             async_zip::Compression::Zstd => Self::Zstd,
-            async_zip::Compression::Bz => Self::Deprecated("bzip2"),
-            async_zip::Compression::Lzma => Self::Deprecated("lzma"),
-            async_zip::Compression::Xz => Self::Deprecated("xz"),
-            _ => Self::Deprecated("unknown"),
+            _ => Self::Unsupported("unknown"),
         }
     }
 }
@@ -64,10 +60,7 @@ impl From<zip::CompressionMethod> for CompressionMethod {
             zip::CompressionMethod::Stored => Self::Stored,
             zip::CompressionMethod::Deflated => Self::Deflated,
             zip::CompressionMethod::Zstd => Self::Zstd,
-            zip::CompressionMethod::Bzip2 => Self::Deprecated("bzip2"),
-            zip::CompressionMethod::Lzma => Self::Deprecated("lzma"),
-            zip::CompressionMethod::Xz => Self::Deprecated("xz"),
-            _ => Self::Deprecated("unknown"),
+            _ => Self::Unsupported("unknown"),
         }
     }
 }

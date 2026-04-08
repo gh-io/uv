@@ -913,7 +913,13 @@ async fn check_malware(
         return Ok(());
     }
 
-    // Only check packages from PyPI — private/local packages aren't in the OSV database.
+    // NOTE: For now, we only check locked packages that indicate a source from
+    // PyPI. The rationale behind this is that private (i.e. non-PyPI) packages
+    // are almost certainly not going to be included in the OSV DB, and scanning
+    // for them against a remote service is both wasteful and arguably a small
+    // information leak (of potentially private package names).
+    // This effectively excludes public packages that are mirrored onto private
+    // indices, which is a tradeoff we'll need to reconsider.
     let auditable = target.lock().pypi_packages_for_audit(extras, groups);
     if auditable.is_empty() {
         return Ok(());

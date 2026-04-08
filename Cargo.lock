@@ -6495,7 +6495,6 @@ dependencies = [
  "uv-distribution-filename",
  "uv-pypi-types",
  "uv-static",
- "uv-warnings",
  "xz2",
  "zip",
  "zstd",

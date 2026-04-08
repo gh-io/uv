@@ -52,8 +52,9 @@ impl WorkspaceCache {
 
     /// Get the cached workspace, if any.
     ///
-    /// If `path` points to a workspace member that is a project, also return the package name. If
-    /// it points to a virtual workspace root, return that workspace root.
+    /// If `path` points to the root or a member of a workspace, return that workspace. If it
+    /// there's a project at the path (not a virtual workspace root), return the package name as
+    /// second value.
     fn get(&self, path: &Path) -> Option<(Arc<Workspace>, Option<PackageName>)> {
         let cache = self
             .workspaces
@@ -76,7 +77,7 @@ impl WorkspaceCache {
 
     /// Remove all cached workspace entries for the given workspace root. Used before modifying the
     /// workspace.
-    pub fn clear(&self, install_path: &Path) {
+    pub fn remove(&self, install_path: &Path) {
         let mut cache = self
             .workspaces
             .lock()
@@ -219,13 +220,10 @@ impl Workspace {
             .ok_or(WorkspaceError::MissingPyprojectToml)?
             .to_path_buf();
 
-        if options.members == MemberDiscovery::All {
-            match cache.get(&path) {
-                None => {}
-                Some((workspace, _)) => {
-                    return Ok(workspace);
-                }
-            }
+        if options.members == MemberDiscovery::All
+            && let Some((workspace, _)) = cache.get(&path)
+        {
+            return Ok(workspace);
         }
 
         let pyproject_path = project_path.join("pyproject.toml");
@@ -1853,7 +1851,7 @@ impl VirtualProject {
         workspace_cache: &WorkspaceCache,
     ) -> Result<Option<Self>, WorkspaceError> {
         // Our modifying operations run on a single workspace, clear that workspace.
-        workspace_cache.clear(&self.workspace().install_path);
+        workspace_cache.remove(&self.workspace().install_path);
         Ok(match self {
             Self::Project(project) => {
                 let Some(project) = project.update_member(pyproject_toml)? else {

@@ -7,8 +7,8 @@ use smallvec::SmallVec;
 use tracing::{debug, trace};
 
 use uv_configuration::IndexStrategy;
-use uv_distribution_types::{CompatibleDist, IncompatibleDist, IncompatibleSource, IndexUrl};
-use uv_distribution_types::{DistributionMetadata, IncompatibleWheel, Name, PrioritizedDist};
+use uv_distribution_types::{CompatibleDist, IncompatibleDist, IndexUrl};
+use uv_distribution_types::{DistributionMetadata, Name, PrioritizedDist};
 use uv_normalize::PackageName;
 use uv_pep440::Version;
 use uv_platform_tags::Tags;
@@ -563,26 +563,6 @@ impl CandidateSelector {
                 );
                 Candidate::new(package_name, version, dist, VersionChoiceKind::Compatible)
             };
-
-            // If candidate is not compatible due to exclude newer, continue searching.
-            // This is a special case — we pretend versions with exclude newer incompatibilities
-            // do not exist so that they are not present in error messages in our test suite.
-            // TODO(zanieb): Now that `--exclude-newer` is user facing we may want to consider
-            // flagging this behavior such that we _will_ report filtered distributions due to
-            // exclude-newer in our error messages.
-            if matches!(
-                candidate.dist(),
-                CandidateDist::Incompatible {
-                    incompatible_dist: IncompatibleDist::Source(IncompatibleSource::ExcludeNewer(
-                        _
-                    )) | IncompatibleDist::Wheel(
-                        IncompatibleWheel::ExcludeNewer(_)
-                    ),
-                    ..
-                }
-            ) {
-                continue;
-            }
 
             // If the candidate isn't compatible, we store it as incompatible and continue
             // searching. Typically, we want to return incompatible candidates so that PubGrub can

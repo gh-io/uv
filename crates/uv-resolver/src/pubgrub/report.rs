@@ -608,6 +608,53 @@ impl PubGrubReportFormatter<'_> {
                                     option: options.build_options.no_build().clone(),
                                 });
                             }
+                            IncompatibleDist::Source(IncompatibleSource::ExcludeNewer(_))
+                            | IncompatibleDist::Wheel(IncompatibleWheel::ExcludeNewer(_)) => {
+                                let exclude_newer = if let Some(index) = fork_indexes.get(name) {
+                                    options
+                                        .exclude_newer
+                                        .exclude_newer_package_for_index_with_source(
+                                            name,
+                                            index_locations.exclude_newer_for(index.url()),
+                                        )
+                                } else {
+                                    options.exclude_newer.exclude_newer_package(name).map(
+                                        |exclude_newer| {
+                                            let source =
+                                                if options.exclude_newer.package.contains_key(name)
+                                                {
+                                                    EffectiveExcludeNewerSource::Package
+                                                } else {
+                                                    EffectiveExcludeNewerSource::Global
+                                                };
+                                            (exclude_newer, source)
+                                        },
+                                    )
+                                };
+
+                                if let Some((exclude_newer, source)) = exclude_newer {
+                                    let no_available_in_set =
+                                        self.available_versions.get(name).is_none_or(|versions| {
+                                            !versions.iter().any(|v| set.contains(v))
+                                        });
+                                    let index_has_versions_in_set =
+                                        self.index_versions.get(name).is_some_and(|versions| {
+                                            versions.iter().any(|v| set.contains(v))
+                                        });
+                                    if no_available_in_set && index_has_versions_in_set {
+                                        let latest_version = self
+                                            .available_versions
+                                            .get(name)
+                                            .and_then(|versions| versions.last().cloned());
+                                        output_hints.insert(PubGrubHint::ExcludeNewer {
+                                            package: name.clone(),
+                                            source,
+                                            exclude_newer,
+                                            latest_version,
+                                        });
+                                    }
+                                }
+                            }
                             // Check for unavailable versions due to incompatible tags.
                             IncompatibleDist::Wheel(IncompatibleWheel::Tag(tag)) => {
                                 if let Some(hint) = self.tag_hint(

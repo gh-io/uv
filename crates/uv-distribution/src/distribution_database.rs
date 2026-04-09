@@ -1103,11 +1103,9 @@ impl<'a, Context: BuildContext> DistributionDatabase<'a, Context> {
 
             // Unzip the wheel to a temporary directory.
             let files = match extension {
-                WheelExtension::Whl => {
-                    uv_extract::stream::unzip(&mut hasher, temp_dir.path())
-                        .await
-                        .map_err(|err| Error::Extract(filename.to_string(), err))?
-                }
+                WheelExtension::Whl => uv_extract::stream::unzip(&mut hasher, temp_dir.path())
+                    .await
+                    .map_err(|err| Error::Extract(filename.to_string(), err))?,
                 WheelExtension::WhlZst => {
                     uv_extract::stream::untar_zst(&mut hasher, temp_dir.path())
                         .await

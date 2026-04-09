@@ -8165,6 +8165,7 @@ fn preview_features() {
                 Audit,
                 ProjectDirectoryMustExist,
                 IndexExcludeNewer,
+                MalwareCheck,
             ],
         },
         python_preference: Managed,

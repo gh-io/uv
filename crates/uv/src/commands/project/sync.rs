@@ -856,14 +856,16 @@ pub(super) async fn do_sync(
     );
 
     // Run a malware check against OSV before installing.
-    check_malware(
-        &target,
-        extras,
-        groups,
-        malware_check_client_builder,
-        concurrency,
-    )
-    .await?;
+    if preview.is_enabled(PreviewFeature::MalwareCheck) {
+        check_malware(
+            &target,
+            extras,
+            groups,
+            malware_check_client_builder,
+            concurrency,
+        )
+        .await?;
+    }
 
     let site_packages = SitePackages::from_environment(venv)?;
 

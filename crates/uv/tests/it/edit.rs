@@ -15269,7 +15269,7 @@ async fn add_malware_detected() {
     uv_snapshot!(context.filters(), context
         .add()
         .arg("iniconfig==2.0.0")
-        .env_remove(EnvVars::UV_NO_MALWARE_CHECK)
+        .arg("--preview-features").arg("malware-check")
         .env(EnvVars::UV_MALWARE_CHECK_URL, server.uri()), @"
     success: false
     exit_code: 2

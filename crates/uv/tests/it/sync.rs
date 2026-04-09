@@ -16228,7 +16228,7 @@ async fn sync_malware_detected() {
 
     uv_snapshot!(context.filters(), context
         .sync()
-        .env_remove(EnvVars::UV_NO_MALWARE_CHECK)
+        .arg("--preview-features").arg("malware-check")
         .env(EnvVars::UV_MALWARE_CHECK_URL, server.uri()), @"
     success: false
     exit_code: 2
@@ -16271,7 +16271,7 @@ async fn sync_malware_check_clean() {
 
     uv_snapshot!(context.filters(), context
         .sync()
-        .env_remove(EnvVars::UV_NO_MALWARE_CHECK)
+        .arg("--preview-features").arg("malware-check")
         .env(EnvVars::UV_MALWARE_CHECK_URL, server.uri()), @"
     success: true
     exit_code: 0
@@ -16330,7 +16330,7 @@ async fn sync_malware_check_skips_non_mal() {
     // The error should only mention the MAL- advisory.
     uv_snapshot!(context.filters(), context
         .sync()
-        .env_remove(EnvVars::UV_NO_MALWARE_CHECK)
+        .arg("--preview-features").arg("malware-check")
         .env(EnvVars::UV_MALWARE_CHECK_URL, server.uri()), @"
     success: false
     exit_code: 2
@@ -16343,7 +16343,8 @@ async fn sync_malware_check_skips_non_mal() {
     ");
 }
 
-/// Ensure that `UV_NO_MALWARE_CHECK=1` disables the malware check.
+/// Ensure that `UV_NO_MALWARE_CHECK=1` disables the malware check even when the preview
+/// feature is enabled.
 #[tokio::test]
 async fn sync_malware_check_disabled() {
     let context = uv_test::test_context!("3.12");
@@ -16363,11 +16364,13 @@ async fn sync_malware_check_disabled() {
 
     let server = MockServer::start().await;
 
-    // Even though malware exists, the check is disabled so no request should be made.
+    // Even though the preview feature is enabled and malware exists, the check is
+    // disabled via env var so no request should be made.
     // (No mocks are mounted, so any request would fail.)
 
     uv_snapshot!(context.filters(), context
         .sync()
+        .arg("--preview-features").arg("malware-check")
         .env(EnvVars::UV_NO_MALWARE_CHECK, "1")
         .env(EnvVars::UV_MALWARE_CHECK_URL, server.uri()), @"
     success: true
@@ -16411,7 +16414,7 @@ async fn sync_malware_check_network_error() {
 
     uv_snapshot!(context.filters(), context
         .sync()
-        .env_remove(EnvVars::UV_NO_MALWARE_CHECK)
+        .arg("--preview-features").arg("malware-check")
         .env(EnvVars::UV_MALWARE_CHECK_URL, server.uri()), @"
     success: true
     exit_code: 0

@@ -6922,9 +6922,9 @@ async fn run_malware_detected() {
 
     uv_snapshot!(context.filters(), context
         .run()
+        .arg("--preview-features").arg("malware-check")
         .arg("python")
         .arg("--version")
-        .env_remove(EnvVars::UV_NO_MALWARE_CHECK)
         .env(EnvVars::UV_MALWARE_CHECK_URL, server.uri()), @"
     success: false
     exit_code: 2

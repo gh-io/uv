@@ -65,9 +65,7 @@ impl From<zip::result::ZipError> for Error {
     fn from(err: zip::result::ZipError) -> Self {
         match err {
             // NOTE: No structured error from the zip crate, so we need to sniff the message.
-            zip::result::ZipError::UnsupportedArchive(msg)
-                if msg == "Compression method not supported" =>
-            {
+            zip::result::ZipError::UnsupportedArchive("Compression method not supported") => {
                 Self::UnsupportedCompression
             }
             o => Self::Zip(o),

@@ -14796,8 +14796,7 @@ fn fail_on_bz2_wheel() {
     ----- stderr -----
       × Failed to download `futzed-bz2 @ https://github.com/astral-sh/futzed-wheels/releases/download/v2026.02.09.2/futzed_bz2-0.1.0-py3-none-any.whl`
       ├─▶ Failed to read metadata: `https://github.com/astral-sh/futzed-wheels/releases/download/v2026.02.09.2/futzed_bz2-0.1.0-py3-none-any.whl`
-      ├─▶ Failed to read from zip file
-      ╰─▶ compression not supported: 12
+      ╰─▶ Archive contains a file with an unsupported compression method; files must be compressed with 'stored', 'DEFLATE', or 'zstd'
     "
     );
 }
@@ -14818,8 +14817,7 @@ fn fail_on_lzma_wheel() {
     ----- stderr -----
       × Failed to download `futzed-lzma @ https://github.com/astral-sh/futzed-wheels/releases/download/v2026.02.09.2/futzed_lzma-0.1.0-py3-none-any.whl`
       ├─▶ Failed to read metadata: `https://github.com/astral-sh/futzed-wheels/releases/download/v2026.02.09.2/futzed_lzma-0.1.0-py3-none-any.whl`
-      ├─▶ Failed to read from zip file
-      ╰─▶ compression not supported: 14
+      ╰─▶ Archive contains a file with an unsupported compression method; files must be compressed with 'stored', 'DEFLATE', or 'zstd'
     "
     );
 }

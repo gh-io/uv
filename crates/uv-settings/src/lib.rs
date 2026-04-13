@@ -849,19 +849,17 @@ impl EnvironmentOptions {
             venv_relocatable: EnvFlag::new(EnvVars::UV_VENV_RELOCATABLE)?,
             init_bare: EnvFlag::new(EnvVars::UV_INIT_BARE)?,
             no_malware_check: EnvFlag::new(EnvVars::UV_NO_MALWARE_CHECK)?,
-            malware_check_url: parse_string_environment_variable(
-                EnvVars::UV_MALWARE_CHECK_URL,
-            )?
-            .map(|value| {
-                value.parse::<DisplaySafeUrl>().map_err(|err| {
-                    Error::InvalidEnvironmentVariable(InvalidEnvironmentVariable {
-                        name: EnvVars::UV_MALWARE_CHECK_URL.to_string(),
-                        value,
-                        err: err.to_string(),
+            malware_check_url: parse_string_environment_variable(EnvVars::UV_MALWARE_CHECK_URL)?
+                .map(|value| {
+                    value.parse::<DisplaySafeUrl>().map_err(|err| {
+                        Error::InvalidEnvironmentVariable(InvalidEnvironmentVariable {
+                            name: EnvVars::UV_MALWARE_CHECK_URL.to_string(),
+                            value,
+                            err: err.to_string(),
+                        })
                     })
                 })
-            })
-            .transpose()?,
+                .transpose()?,
         })
     }
 }

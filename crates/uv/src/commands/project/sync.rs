@@ -31,10 +31,10 @@ use uv_pep508::{MarkerTree, VersionOrUrl};
 use uv_preview::{Preview, PreviewFeature};
 use uv_pypi_types::{ParsedArchiveUrl, ParsedGitUrl, ParsedUrl};
 use uv_python::{PythonDownloads, PythonEnvironment, PythonPreference, PythonRequest};
+use uv_redacted::DisplaySafeUrl;
 use uv_resolver::{FlatIndex, ForkStrategy, Installable, Lock, PrereleaseMode, ResolutionMode};
 use uv_scripts::Pep723Script;
 use uv_settings::PythonInstallMirrors;
-use uv_redacted::DisplaySafeUrl;
 use uv_types::{BuildIsolation, HashStrategy};
 use uv_warnings::warn_user;
 use uv_workspace::pyproject::Source;
@@ -938,13 +938,7 @@ async fn check_malware(
 
     let osv_url = malware_check_url.unwrap_or_else(|| osv::API_BASE.clone());
 
-    let base_client = match client_builder.build() {
-        Ok(client) => client,
-        Err(err) => {
-            trace!("Malware check skipped: failed to build HTTP client: {err}");
-            return Ok(());
-        }
-    };
+    let base_client = client_builder.build()?;
     let client = base_client.for_host(&osv_url).raw_client().clone();
     let service = osv::Osv::new(client, Some(osv_url), concurrency.clone());
 

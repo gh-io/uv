@@ -6,9 +6,11 @@
 //!
 //! [OSV]: https://osv.dev/
 
+use std::str::FromStr as _;
+use std::sync::LazyLock;
+
 use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::str::FromStr as _;
 use tracing::trace;
 
 use crate::types::{self, VulnerabilityID};
@@ -20,7 +22,9 @@ use uv_configuration::Concurrency;
 use uv_pep440::Version;
 use uv_redacted::{DisplaySafeUrl, DisplaySafeUrlError};
 
-pub const API_BASE: &str = "https://api.osv.dev/";
+pub static API_BASE: LazyLock<DisplaySafeUrl> = LazyLock::new(|| {
+    DisplaySafeUrl::parse("https://api.osv.dev/").expect("impossible: embedded URL is invalid")
+});
 
 /// Errors during OSV service interactions.
 #[derive(Debug, thiserror::Error)]
@@ -217,9 +221,7 @@ impl Osv {
         concurrency: Concurrency,
     ) -> Self {
         Self {
-            base_url: base_url.unwrap_or_else(|| {
-                DisplaySafeUrl::parse(API_BASE).expect("impossible: embedded URL is invalid")
-            }),
+            base_url: base_url.unwrap_or_else(|| API_BASE.clone()),
             client,
             concurrency,
         }

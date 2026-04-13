@@ -17,6 +17,7 @@ use uv_normalize::PackageName;
 use uv_normalize::{DEV_DEPENDENCIES, DefaultExtras, DefaultGroups};
 use uv_preview::Preview;
 use uv_python::{PythonDownloads, PythonPreference, PythonRequest};
+use uv_redacted::DisplaySafeUrl;
 use uv_scripts::{Pep723Metadata, Pep723Script};
 use uv_settings::PythonInstallMirrors;
 use uv_warnings::warn_user_once;
@@ -63,6 +64,7 @@ pub(crate) async fn remove(
     printer: Printer,
     preview: Preview,
     no_malware_check: bool,
+    malware_check_url: Option<DisplaySafeUrl>,
 ) -> Result<ExitStatus> {
     let target = if let Some(script) = script {
         // If we found a PEP 723 script and the user provided a project-only setting, warn.
@@ -373,6 +375,7 @@ pub(crate) async fn remove(
         printer,
         preview,
         no_malware_check,
+        malware_check_url,
     )
     .await
     {

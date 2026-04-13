@@ -34,7 +34,7 @@ use uv_python::{PythonDownloads, PythonEnvironment, PythonPreference, PythonRequ
 use uv_resolver::{FlatIndex, ForkStrategy, Installable, Lock, PrereleaseMode, ResolutionMode};
 use uv_scripts::Pep723Script;
 use uv_settings::PythonInstallMirrors;
-use uv_static::EnvVars;
+use uv_redacted::DisplaySafeUrl;
 use uv_types::{BuildIsolation, HashStrategy};
 use uv_warnings::warn_user;
 use uv_workspace::pyproject::Source;
@@ -91,6 +91,7 @@ pub(crate) async fn sync(
     preview: Preview,
     output_format: SyncFormat,
     no_malware_check: bool,
+    malware_check_url: Option<DisplaySafeUrl>,
 ) -> Result<ExitStatus> {
     if preview.is_enabled(PreviewFeature::JsonOutput) && matches!(output_format, SyncFormat::Json) {
         warn_user!(
@@ -441,6 +442,7 @@ pub(crate) async fn sync(
         printer,
         preview,
         no_malware_check,
+        malware_check_url,
     )
     .await
     {
@@ -656,6 +658,7 @@ pub(super) async fn do_sync(
     printer: Printer,
     preview: Preview,
     no_malware_check: bool,
+    malware_check_url: Option<DisplaySafeUrl>,
 ) -> Result<Changelog, ProjectError> {
     // Extract the project settings.
     let InstallerSettingsRef {
@@ -867,6 +870,7 @@ pub(super) async fn do_sync(
             groups,
             malware_check_client_builder,
             concurrency,
+            malware_check_url.clone(),
         )
         .await?;
     }
@@ -913,6 +917,7 @@ async fn check_malware(
     groups: &DependencyGroupsWithDefaults,
     client_builder: &BaseClientBuilder<'_>,
     concurrency: &Concurrency,
+    malware_check_url: Option<DisplaySafeUrl>,
 ) -> Result<(), ProjectError> {
     // NOTE: For now, we only check locked packages that indicate a source from
     // PyPI. The rationale behind this is that private (i.e. non-PyPI) packages
@@ -931,15 +936,7 @@ async fn check_malware(
         .map(|(name, version)| Dependency::new((*name).clone(), (*version).clone()))
         .collect();
 
-    let osv_url =
-        std::env::var(EnvVars::UV_MALWARE_CHECK_URL).unwrap_or_else(|_| osv::API_BASE.to_string());
-    let osv_url = match osv_url.parse() {
-        Ok(url) => url,
-        Err(err) => {
-            trace!("Malware check skipped: invalid URL: {err}");
-            return Ok(());
-        }
-    };
+    let osv_url = malware_check_url.unwrap_or_else(|| osv::API_BASE.clone());
 
     let base_client = match client_builder.build() {
         Ok(client) => client,

@@ -2202,6 +2202,7 @@ async fn run_project(
                 globals.preview,
                 args.max_recursion_depth,
                 args.no_malware_check,
+                args.malware_check_url,
             ))
             .await
         }
@@ -2259,6 +2260,7 @@ async fn run_project(
                 globals.preview,
                 args.output_format,
                 args.no_malware_check,
+                args.malware_check_url,
             ))
             .await
         }
@@ -2446,6 +2448,7 @@ async fn run_project(
                 printer,
                 globals.preview,
                 args.no_malware_check,
+                args.malware_check_url,
             ))
             .await
         }
@@ -2496,6 +2499,7 @@ async fn run_project(
                 printer,
                 globals.preview,
                 args.no_malware_check,
+                args.malware_check_url,
             ))
             .await
         }
@@ -2543,6 +2547,7 @@ async fn run_project(
                 printer,
                 globals.preview,
                 args.no_malware_check,
+                args.malware_check_url,
             ))
             .await
         }

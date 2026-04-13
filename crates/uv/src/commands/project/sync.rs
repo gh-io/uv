@@ -947,17 +947,13 @@ async fn check_malware(
         dependencies.len()
     );
 
-    let identifiers = match service
+    // NOTE: For now, we produce a hard failure if the OSV request fails.
+    // In the future we may want to relax this to a warning, but a hard failure
+    // seems fine while we're in preview since it'll help us shake out
+    // any reliability risks with OSV.
+    let identifiers = service
         .query_identifiers(&dependencies, Filter::Malware)
-        .await
-    {
-        Ok(identifiers) => identifiers,
-        Err(err) => {
-            trace!("Malware check failed: {err}");
-            warn_user!("Skipping malware check due to a network error");
-            return Ok(());
-        }
-    };
+        .await?;
 
     let malware_details: Vec<_> = identifiers
         .iter()

@@ -16416,16 +16416,14 @@ async fn sync_malware_check_network_error() {
         .sync()
         .arg("--preview-features").arg("malware-check")
         .env(EnvVars::UV_MALWARE_CHECK_URL, server.uri()), @"
-    success: true
-    exit_code: 0
+    success: false
+    exit_code: 2
     ----- stdout -----
 
     ----- stderr -----
     Resolved 2 packages in [TIME]
-    warning: Skipping malware check due to a network error
-    Prepared 1 package in [TIME]
-    Installed 1 package in [TIME]
-     + iniconfig==2.0.0
+    error: Malware check failed due to an error from OSV
+      Caused by: HTTP status server error (500 Internal Server Error) for url (http://[LOCALHOST]/v1/querybatch)
     ");
 }
 

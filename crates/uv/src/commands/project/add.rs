@@ -102,6 +102,7 @@ pub(crate) async fn add(
     cache: &Cache,
     printer: Printer,
     preview: Preview,
+    no_malware_check: bool,
 ) -> Result<ExitStatus> {
     for source in &requirements {
         match source {
@@ -755,6 +756,7 @@ pub(crate) async fn add(
         cache,
         printer,
         preview,
+        no_malware_check,
     ))
     .await
     {
@@ -997,6 +999,7 @@ async fn lock_and_sync(
     cache: &Cache,
     printer: Printer,
     preview: Preview,
+    no_malware_check: bool,
 ) -> Result<(), ProjectError> {
     let mut lock = Box::pin(
         project::lock::LockOperation::new(
@@ -1201,6 +1204,7 @@ async fn lock_and_sync(
         DryRun::Disabled,
         printer,
         preview,
+        no_malware_check,
     )
     .await?;
 

@@ -2201,6 +2201,7 @@ async fn run_project(
                 args.env_file,
                 globals.preview,
                 args.max_recursion_depth,
+                args.no_malware_check,
             ))
             .await
         }
@@ -2257,6 +2258,7 @@ async fn run_project(
                 printer,
                 globals.preview,
                 args.output_format,
+                args.no_malware_check,
             ))
             .await
         }
@@ -2443,6 +2445,7 @@ async fn run_project(
                 &cache,
                 printer,
                 globals.preview,
+                args.no_malware_check,
             ))
             .await
         }
@@ -2492,6 +2495,7 @@ async fn run_project(
                 &cache,
                 printer,
                 globals.preview,
+                args.no_malware_check,
             ))
             .await
         }
@@ -2538,6 +2542,7 @@ async fn run_project(
                 workspace_cache,
                 printer,
                 globals.preview,
+                args.no_malware_check,
             ))
             .await
         }

@@ -39,6 +39,7 @@ use crate::printer::Printer;
 use crate::settings::{FrozenSource, LockCheck, ResolverInstallerSettings};
 
 /// Remove one or more packages from the project requirements.
+#[expect(clippy::fn_params_excessive_bools)]
 pub(crate) async fn remove(
     project_dir: &Path,
     lock_check: LockCheck,
@@ -61,6 +62,7 @@ pub(crate) async fn remove(
     cache: &Cache,
     printer: Printer,
     preview: Preview,
+    no_malware_check: bool,
 ) -> Result<ExitStatus> {
     let target = if let Some(script) = script {
         // If we found a PEP 723 script and the user provided a project-only setting, warn.
@@ -370,6 +372,7 @@ pub(crate) async fn remove(
         DryRun::Disabled,
         printer,
         preview,
+        no_malware_check,
     )
     .await
     {

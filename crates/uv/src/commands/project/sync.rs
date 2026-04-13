@@ -34,7 +34,7 @@ use uv_python::{PythonDownloads, PythonEnvironment, PythonPreference, PythonRequ
 use uv_resolver::{FlatIndex, ForkStrategy, Installable, Lock, PrereleaseMode, ResolutionMode};
 use uv_scripts::Pep723Script;
 use uv_settings::PythonInstallMirrors;
-use uv_static::{EnvVars, parse_boolish_environment_variable};
+use uv_static::EnvVars;
 use uv_types::{BuildIsolation, HashStrategy};
 use uv_warnings::warn_user;
 use uv_workspace::pyproject::Source;
@@ -60,6 +60,7 @@ use crate::settings::{
 };
 
 /// Sync the project environment.
+#[expect(clippy::fn_params_excessive_bools)]
 pub(crate) async fn sync(
     project_dir: &Path,
     lock_check: LockCheck,
@@ -89,6 +90,7 @@ pub(crate) async fn sync(
     printer: Printer,
     preview: Preview,
     output_format: SyncFormat,
+    no_malware_check: bool,
 ) -> Result<ExitStatus> {
     if preview.is_enabled(PreviewFeature::JsonOutput) && matches!(output_format, SyncFormat::Json) {
         warn_user!(
@@ -438,6 +440,7 @@ pub(crate) async fn sync(
         dry_run,
         printer,
         preview,
+        no_malware_check,
     )
     .await
     {
@@ -652,6 +655,7 @@ pub(super) async fn do_sync(
     dry_run: DryRun,
     printer: Printer,
     preview: Preview,
+    no_malware_check: bool,
 ) -> Result<Changelog, ProjectError> {
     // Extract the project settings.
     let InstallerSettingsRef {
@@ -856,7 +860,7 @@ pub(super) async fn do_sync(
     );
 
     // Run a malware check against OSV before installing.
-    if preview.is_enabled(PreviewFeature::MalwareCheck) {
+    if preview.is_enabled(PreviewFeature::MalwareCheck) && !no_malware_check {
         check_malware(
             &target,
             extras,
@@ -910,15 +914,6 @@ async fn check_malware(
     client_builder: &BaseClientBuilder<'_>,
     concurrency: &Concurrency,
 ) -> Result<(), ProjectError> {
-    // Allow opting out via environment variable.
-    if parse_boolish_environment_variable(EnvVars::UV_NO_MALWARE_CHECK)
-        .ok()
-        .flatten()
-        .unwrap_or(false)
-    {
-        return Ok(());
-    }
-
     // NOTE: For now, we only check locked packages that indicate a source from
     // PyPI. The rationale behind this is that private (i.e. non-PyPI) packages
     // are almost certainly not going to be included in the OSV DB, and scanning

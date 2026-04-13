@@ -969,18 +969,20 @@ async fn check_malware(
         }
     };
 
-    let mut malware_details = Vec::new();
-    for (dependency, vuln_ids) in &identifiers {
-        for vuln_id in vuln_ids {
-            malware_details.push(format!(
-                "  - `{}=={}`: {} (https://osv.dev/vulnerability/{})",
-                dependency.name(),
-                dependency.version(),
-                vuln_id.as_str(),
-                vuln_id.as_str(),
-            ));
-        }
-    }
+    let malware_details: Vec<_> = identifiers
+        .iter()
+        .flat_map(|(dependency, vuln_ids)| {
+            vuln_ids.iter().map(move |vuln_id| {
+                format!(
+                    "  - `{}=={}`: {} (https://osv.dev/vulnerability/{})",
+                    dependency.name(),
+                    dependency.version(),
+                    vuln_id.as_str(),
+                    vuln_id.as_str(),
+                )
+            })
+        })
+        .collect();
 
     if malware_details.is_empty() {
         Ok(())

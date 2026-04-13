@@ -553,13 +553,19 @@ mod tests {
 
         // package-a should have VULN-1 and VULN-3.
         let pkg_a_ids = identifiers.get(&dependencies[0]).unwrap();
-        let mut pkg_a_sorted: Vec<_> = pkg_a_ids.iter().map(crate::types::VulnerabilityID::as_str).collect();
+        let mut pkg_a_sorted: Vec<_> = pkg_a_ids
+            .iter()
+            .map(crate::types::VulnerabilityID::as_str)
+            .collect();
         pkg_a_sorted.sort_unstable();
         assert_eq!(pkg_a_sorted, ["VULN-1", "VULN-3"]);
 
         // package-b should have VULN-2.
         let pkg_b_ids = identifiers.get(&dependencies[1]).unwrap();
-        let pkg_b_sorted: Vec<_> = pkg_b_ids.iter().map(crate::types::VulnerabilityID::as_str).collect();
+        let pkg_b_sorted: Vec<_> = pkg_b_ids
+            .iter()
+            .map(crate::types::VulnerabilityID::as_str)
+            .collect();
         assert_eq!(pkg_b_sorted, ["VULN-2"]);
 
         // Only 1 querybatch request, no vuln detail fetches.

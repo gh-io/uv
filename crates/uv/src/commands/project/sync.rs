@@ -34,7 +34,7 @@ use uv_python::{PythonDownloads, PythonEnvironment, PythonPreference, PythonRequ
 use uv_resolver::{FlatIndex, ForkStrategy, Installable, Lock, PrereleaseMode, ResolutionMode};
 use uv_scripts::Pep723Script;
 use uv_settings::PythonInstallMirrors;
-use uv_static::EnvVars;
+use uv_static::{EnvVars, parse_boolish_environment_variable};
 use uv_types::{BuildIsolation, HashStrategy};
 use uv_warnings::warn_user;
 use uv_workspace::pyproject::Source;
@@ -911,7 +911,11 @@ async fn check_malware(
     concurrency: &Concurrency,
 ) -> Result<(), ProjectError> {
     // Allow opting out via environment variable.
-    if std::env::var_os(EnvVars::UV_NO_MALWARE_CHECK).is_some() {
+    if parse_boolish_environment_variable(EnvVars::UV_NO_MALWARE_CHECK)
+        .ok()
+        .flatten()
+        .unwrap_or(false)
+    {
         return Ok(());
     }
 

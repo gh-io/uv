@@ -957,8 +957,11 @@ async fn check_malware(
         dependencies.len()
     );
 
-    let findings = match service.query_batch(&dependencies, Filter::Malware).await {
-        Ok(findings) => findings,
+    let identifiers = match service
+        .query_identifiers(&dependencies, Filter::Malware)
+        .await
+    {
+        Ok(identifiers) => identifiers,
         Err(err) => {
             trace!("Malware check failed: {err}");
             warn_user!("Skipping malware check due to a network error");
@@ -967,14 +970,14 @@ async fn check_malware(
     };
 
     let mut malware_details = Vec::new();
-    for finding in &findings {
-        if let uv_audit::types::Finding::Vulnerability(vulnerability) = finding {
+    for (dependency, vuln_ids) in &identifiers {
+        for vuln_id in vuln_ids {
             malware_details.push(format!(
                 "  - `{}=={}`: {} (https://osv.dev/vulnerability/{})",
-                vulnerability.dependency.name(),
-                vulnerability.dependency.version(),
-                vulnerability.id.as_str(),
-                vulnerability.id.as_str(),
+                dependency.name(),
+                dependency.version(),
+                vuln_id.as_str(),
+                vuln_id.as_str(),
             ));
         }
     }

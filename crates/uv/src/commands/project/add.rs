@@ -1364,7 +1364,9 @@ impl AddTarget {
         };
         let lock = target.read_bytes().await?;
 
-        // Clone the target.
+        // Obtain a detached a copy of the old structure so we can revert to it without
+        // breaking the assumption that the workspace cache is only used by the modifying code
+        // when changing it.
         match self {
             Self::Script(script, _) => Ok(AddTargetSnapshot::Script(script.clone(), lock)),
             Self::Project(project, _) => {

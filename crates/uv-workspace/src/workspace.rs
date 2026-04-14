@@ -907,7 +907,10 @@ impl Workspace {
         // For the cases such as `MemberDiscovery::None`, add the current project if missing.
         if let Some(root_member) = current_project {
             if !workspace_members.contains_key(&root_member.project.name) {
-                assert_eq!(options.members, MemberDiscovery::None);
+                assert!(matches!(
+                    options.members,
+                    MemberDiscovery::None | MemberDiscovery::Ignore(_)
+                ));
                 debug!(
                     "Adding current workspace member: `{}`",
                     root_member.root.simplified_display()

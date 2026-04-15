@@ -16,6 +16,11 @@ pub fn init(flags: EnvironmentFlags) -> Result<(), ()> {
     FLAGS.set(flags).map_err(|_| ())
 }
 
+/// Check if the environment flags have been initialized.
+pub fn is_initialized() -> bool {
+    FLAGS.get().is_some()
+}
+
 /// Check if a specific environment flag is set.
 pub fn contains(flag: EnvironmentFlags) -> bool {
     FLAGS.get_or_init(EnvironmentFlags::default).contains(flag)

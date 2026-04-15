@@ -1,11 +1,14 @@
 use std::hint::black_box;
-use std::process::Command;
 use std::str::FromStr;
+use std::sync::Once;
 
+use clap::Parser;
 use criterion::{Criterion, criterion_group, criterion_main, measurement::WallTime};
 use uv_cache::Cache;
+use uv_cli::Cli;
 use uv_client::{BaseClientBuilder, Connectivity, RegistryClientBuilder};
 use uv_distribution_types::Requirement;
+use uv_preview::Preview;
 use uv_python::PythonEnvironment;
 use uv_resolver::{Lock, Manifest};
 
@@ -48,10 +51,18 @@ fn resolve_warm_airflow(c: &mut Criterion<WallTime>) {
 //     c.bench_function("resolve_warm_airflow_universal", |b| b.iter(&run));
 // }
 
+/// Initialize process-global state (flags and preview) once per benchmark binary, so that
+/// repeated [`uv::run`] calls inside the iteration loop don't trip the `OnceLock` guards.
+fn init_uv_globals() {
+    static INIT: Once = Once::new();
+    INIT.call_once(|| {
+        let _ = uv_flags::init(uv_flags::EnvironmentFlags::default());
+        let _ = uv_preview::set(Preview::default());
+        let _ = uv_preview::finalize();
+    });
+}
+
 /// Benchmark `uv run python -V` in a warm cache, fully sync airflow.
-///
-/// Invokes `uv` as a subprocess rather than calling [`uv::run`] in-process, to avoid global state
-/// pollution from the resolver benchmarks (which initialize `uv_flags` but not `uv_preview`).
 #[expect(clippy::print_stderr)]
 fn run_noop_airflow(c: &mut Criterion<WallTime>) {
     let airflow_dir = std::path::absolute("../../airflow").unwrap();
@@ -69,47 +80,50 @@ fn run_noop_airflow(c: &mut Criterion<WallTime>) {
         return;
     }
     let cache_dir = std::path::absolute("../../.cache").unwrap();
-    let uv_binary = std::path::absolute("../../target/debug/uv").unwrap();
+
+    init_uv_globals();
+
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let airflow_dir = airflow_dir.to_string_lossy().to_string();
+    let cache_dir = cache_dir.to_string_lossy().to_string();
 
     // Verify the setup works before benchmarking.
-    let status = Command::new(&uv_binary)
-        .args([
-            "run",
-            "--directory",
-            airflow_dir.to_str().unwrap(),
-            "--cache-dir",
-            cache_dir.to_str().unwrap(),
-            "--quiet",
-            "python",
-            "-V",
-        ])
-        .status()
-        .expect("Failed to spawn `uv run`");
-    assert!(status.success(), "`uv run` verify step failed: {status}");
+    let cli = Cli::try_parse_from([
+        "uv",
+        "run",
+        "--directory",
+        &airflow_dir,
+        "--cache-dir",
+        &cache_dir,
+        "--quiet",
+        "python",
+        "-V",
+    ])
+    .unwrap();
+    runtime.block_on(uv::run(cli, false)).unwrap();
 
-    let mut group = c.benchmark_group("run_noop_airflow");
-    // Each iteration spawns a subprocess that takes several seconds, so keep the sample count low.
-    group.sample_size(10);
-    group.bench_function("run_noop_airflow", |b| {
+    c.bench_function("run_noop_airflow", |b| {
         b.iter(|| {
-            let status = Command::new(&uv_binary)
-                .args([
-                    "run",
-                    "--directory",
-                    black_box(airflow_dir.to_str().unwrap()),
-                    "--cache-dir",
-                    black_box(cache_dir.to_str().unwrap()),
-                    "--quiet",
-                    "--offline",
-                    "python",
-                    "-V",
-                ])
-                .status()
-                .expect("Failed to spawn `uv run`");
-            assert!(status.success());
+            let cli = Cli::try_parse_from([
+                "uv",
+                "run",
+                "--directory",
+                black_box(&airflow_dir),
+                "--cache-dir",
+                black_box(&cache_dir),
+                "--quiet",
+                "--offline",
+                "python",
+                "-V",
+            ])
+            .unwrap();
+            runtime.block_on(uv::run(cli, false)).unwrap();
         });
     });
-    group.finish();
 }
 
 /// Benchmark lock file parsing for the airflow workspace.

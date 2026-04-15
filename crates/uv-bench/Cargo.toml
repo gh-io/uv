@@ -24,8 +24,11 @@ path = "benches/uv.rs"
 harness = false
 
 [dev-dependencies]
+uv = { path = "../uv", default-features = false }
 uv-cache = { workspace = true }
+uv-cli = { workspace = true }
 uv-client = { workspace = true }
+uv-flags = { workspace = true }
 uv-configuration = { workspace = true }
 uv-dispatch = { workspace = true }
 uv-distribution = { workspace = true }
@@ -43,6 +46,7 @@ uv-types = { workspace = true }
 uv-workspace = { workspace = true }
 
 anyhow = { workspace = true }
+clap = { workspace = true }
 criterion = { version = "4.0.3", default-features = false, package = "codspeed-criterion-compat", features = ["async_tokio"] }
 fs-err = { workspace = true }
 jiff = { workspace = true }

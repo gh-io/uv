@@ -1,14 +1,10 @@
 use std::hint::black_box;
 use std::str::FromStr;
-use std::sync::Once;
 
-use clap::Parser;
 use criterion::{Criterion, criterion_group, criterion_main, measurement::WallTime};
 use uv_cache::Cache;
-use uv_cli::Cli;
 use uv_client::{BaseClientBuilder, Connectivity, RegistryClientBuilder};
 use uv_distribution_types::Requirement;
-use uv_preview::Preview;
 use uv_python::PythonEnvironment;
 use uv_resolver::{Lock, Manifest};
 
@@ -51,81 +47,6 @@ fn resolve_warm_airflow(c: &mut Criterion<WallTime>) {
 //     c.bench_function("resolve_warm_airflow_universal", |b| b.iter(&run));
 // }
 
-/// Initialize process-global state (flags and preview) once per benchmark binary, so that
-/// repeated [`uv::run`] calls inside the iteration loop don't trip the `OnceLock` guards.
-fn init_uv_globals() {
-    static INIT: Once = Once::new();
-    INIT.call_once(|| {
-        let _ = uv_flags::init(uv_flags::EnvironmentFlags::default());
-        let _ = uv_preview::set(Preview::default());
-        let _ = uv_preview::finalize();
-    });
-}
-
-/// Benchmark `uv run python -V` in a warm cache, fully sync airflow.
-#[expect(clippy::print_stderr)]
-fn run_noop_airflow(c: &mut Criterion<WallTime>) {
-    let airflow_dir = std::path::absolute("../../airflow").unwrap();
-    if !airflow_dir.join("uv.lock").exists() {
-        let commit = "7fa400745ac7aebc7cc4ec21d3a047e9fb258310";
-        let repo = "https://github.com/apache/airflow.git";
-        eprintln!(
-            "Airflow checkout does not exist, not running benchmark.\n\
-            To set up:\n\
-            git init ../airflow\n\
-            git -C ../airflow remote add origin {repo}\n\
-            git -C ../airflow fetch --depth 1 origin {commit}\n\
-            git -C ../airflow checkout FETCH_HEAD"
-        );
-        return;
-    }
-    let cache_dir = std::path::absolute("../../.cache").unwrap();
-
-    init_uv_globals();
-
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap();
-
-    let airflow_dir = airflow_dir.to_string_lossy().to_string();
-    let cache_dir = cache_dir.to_string_lossy().to_string();
-
-    // Verify the setup works before benchmarking.
-    let cli = Cli::try_parse_from([
-        "uv",
-        "run",
-        "--directory",
-        &airflow_dir,
-        "--cache-dir",
-        &cache_dir,
-        "--quiet",
-        "python",
-        "-V",
-    ])
-    .unwrap();
-    runtime.block_on(uv::run(cli, false)).unwrap();
-
-    c.bench_function("run_noop_airflow", |b| {
-        b.iter(|| {
-            let cli = Cli::try_parse_from([
-                "uv",
-                "run",
-                "--directory",
-                black_box(&airflow_dir),
-                "--cache-dir",
-                black_box(&cache_dir),
-                "--quiet",
-                "--offline",
-                "python",
-                "-V",
-            ])
-            .unwrap();
-            runtime.block_on(uv::run(cli, false)).unwrap();
-        });
-    });
-}
-
 /// Benchmark lock file parsing for the airflow workspace.
 fn parse_airflow_lockfile(c: &mut Criterion<WallTime>) {
     let lockfile = airflow_lockfile();
@@ -162,7 +83,6 @@ criterion_group!(
     resolve_warm_jupyter,
     resolve_warm_jupyter_universal,
     resolve_warm_airflow,
-    run_noop_airflow,
     parse_airflow_lockfile,
 );
 criterion_main!(uv);
